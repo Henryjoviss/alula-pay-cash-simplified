@@ -36,5 +36,3 @@ jobs:
         with:
           name: alula-pay-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk          name: alula-pay-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk          name: alula-pay-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
