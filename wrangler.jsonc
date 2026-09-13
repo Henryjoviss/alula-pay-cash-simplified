@@ -4,12 +4,13 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
+  "workers_dev": true,
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "alula-pay-users",
       "database_id": "ba5b9c5f-d790-47cf-86e2-fd544f17f7d5",
-      "migrations_dir": "migrations",
-    },
-  ],
+      "migrations_dir": "migrations"
+    }
+  ]
 }
