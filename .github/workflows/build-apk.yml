@@ -23,6 +23,9 @@ jobs:
 
       - run: npx vite build
 
+      - name: Ensure Android assets folder exists
+        run: mkdir -p android/app/src/main/assets
+
       - run: npx cap sync android
 
       - name: Build debug APK
