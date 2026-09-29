@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { ArrowRight, Landmark, MapPin, ShieldCheck, Timer, Zap, CircleCheck } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhoneFrame } from "@/components/PhoneFrame";
 import { useApp } from "@/lib/app-state";
@@ -9,6 +11,8 @@ import screen3 from "@/assets/onboarding-screen-3.png.asset.json";
 import screen4 from "@/assets/onboarding-screen-4.png.asset.json";
 import screen5 from "@/assets/onboarding-screen-5.png.asset.json";
 import screen6 from "@/assets/onboarding-screen-6.png.asset.json";
+import hero1 from "@/assets/onb-hero-1.jpg";
+import hero2 from "@/assets/onb-hero-2.jpg";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -20,6 +24,14 @@ export const Route = createFileRoute("/onboarding")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap",
+      },
+    ],
   }),
   component: Onboarding,
 });
@@ -27,6 +39,134 @@ export const Route = createFileRoute("/onboarding")({
 const screens = [screen1.url, screen2.url, screen3.url, screen4.url, screen5.url, screen6.url];
 const screenRatios = [853 / 1844, 852 / 1846, 853 / 1844, 852 / 1332, 843 / 1866, 852 / 1846];
 const SCREEN_ALT = "Alula Pay onboarding screen";
+
+const FONT = "'Manrope', system-ui, -apple-system, sans-serif";
+
+type Slide = {
+  image: string;
+  title: string;
+  body: string;
+  features: { icon: LucideIcon; label: string }[];
+};
+
+const slides: Slide[] = [
+  {
+    image: hero1,
+    title: "Send money to any bank in seconds",
+    body: "Fast, secure and made for the way you live.",
+    features: [
+      { icon: Zap, label: "Fast Transfers" },
+      { icon: ShieldCheck, label: "Secure & Trusted" },
+      { icon: Landmark, label: "Any Bank. Anytime." },
+    ],
+  },
+  {
+    image: hero2,
+    title: "Find vouchers near you",
+    body: "From local shops to trusted partners. Get one in seconds.",
+    features: [
+      { icon: MapPin, label: "Near You" },
+      { icon: Timer, label: "Quick & Easy" },
+      { icon: CircleCheck, label: "Trusted Partners" },
+    ],
+  },
+];
+
+function SlideView({ index, onNext }: { index: number; onNext: () => void }) {
+  const slide = slides[index];
+  return (
+    <div
+      className="flex h-full w-full flex-col overflow-y-auto bg-white"
+      style={{ fontFamily: FONT }}
+    >
+      <img src={slide.image} alt="" className="block h-auto w-full select-none" />
+
+      <div className="px-6 pt-6">
+        <h1
+          className="text-balance text-left"
+          style={{
+            fontFamily: FONT,
+            fontWeight: 700,
+            fontSize: 28,
+            lineHeight: "34px",
+            letterSpacing: "-0.5px",
+            color: "#101828",
+          }}
+        >
+          {slide.title}
+        </h1>
+        <p
+          className="mt-2 text-left"
+          style={{
+            fontFamily: FONT,
+            fontWeight: 400,
+            fontSize: 16,
+            lineHeight: "24px",
+            letterSpacing: 0,
+            color: "#667085",
+          }}
+        >
+          {slide.body}
+        </p>
+
+        <div className="mt-6 grid grid-cols-3 gap-2 rounded-3xl bg-[#F4F7FC] px-2 py-4">
+          {slide.features.map(({ icon: Icon, label }) => (
+            <div key={label} className="flex flex-col items-center gap-2 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2358E6]">
+                <Icon className="h-5 w-5 text-white" strokeWidth={2} />
+              </div>
+              <span
+                style={{
+                  fontFamily: FONT,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  lineHeight: "20px",
+                  letterSpacing: "-0.1px",
+                  color: "#101828",
+                }}
+              >
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 flex items-center justify-between pb-8">
+          <div className="flex items-center gap-2" aria-hidden="true">
+            {[0, 1, 2].map((dot) => (
+              <span
+                key={dot}
+                style={{
+                  height: 8,
+                  width: dot === index ? 32 : 8,
+                  borderRadius: 4,
+                  backgroundColor: dot === index ? "#2358E6" : "#EDF2F8",
+                }}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={onNext}
+            className="inline-flex h-[52px] min-w-[112px] items-center justify-center gap-3 rounded-full px-5 shadow-[0_10px_24px_-8px_rgba(35,88,230,0.55)]"
+            style={{
+              backgroundColor: "#2358E6",
+              color: "#FFFFFF",
+              fontFamily: FONT,
+              fontWeight: 600,
+              fontSize: 18,
+              lineHeight: "24px",
+              letterSpacing: 0,
+            }}
+          >
+            Next
+            <ArrowRight className="h-5 w-5" strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Onboarding() {
   const navigate = useNavigate();
@@ -62,6 +202,14 @@ function Onboarding() {
     setGoogleEmail("");
     setScreen(4);
   };
+
+  if (screen < slides.length) {
+    return (
+      <PhoneFrame>
+        <SlideView index={screen} onNext={next} />
+      </PhoneFrame>
+    );
+  }
 
   return (
     <PhoneFrame>
@@ -179,4 +327,4 @@ function Onboarding() {
       </div>
     </PhoneFrame>
   );
-}
+            }
