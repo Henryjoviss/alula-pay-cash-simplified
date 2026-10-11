@@ -1,5 +1,3 @@
-import { createServerFn } from "@tanstack/react-start";
-import { env } from "cloudflare:workers";
 import { hashPin, verifyPin } from "./pin-hash";
 
 export type SignupInput = {
@@ -12,48 +10,75 @@ export type SignupInput = {
 };
 export type SignupResult = { ok: true } | { ok: false; error: string };
 
-export const signupUser = createServerFn({ method: "POST" })
-  .validator((data: SignupInput) => data)
-  .handler(async ({ data }): Promise<SignupResult> => {
-    const existing = await env.DB.prepare("SELECT id FROM users WHERE phone = ?").bind(data.phone).first();
-    if (existing) return { ok: false, error: "An account with this mobile number already exists." };
-
-    const pinHash = await hashPin(data.pin);
-    const now = Date.now();
-    await env.DB.prepare(
-      `INSERT INTO users (id, phone, first_name, last_name, email, income_source, app_pin_hash, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-      .bind(crypto.randomUUID(), data.phone, data.firstName, data.lastName, data.email || null, data.incomeSource || null, pinHash, now, now)
-      .run();
-    return { ok: true };
-  });
-
 export type LoginInput = { phone: string; pin: string };
-export type LoginUser = { phone: string; firstName: string; lastName: string; email: string; incomeSource: string };
+export type LoginUser = {
+  phone: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  incomeSource: string;
+};
 export type LoginResult = { ok: true; user: LoginUser } | { ok: false; error: string };
 
-export const loginUser = createServerFn({ method: "POST" })
-  .validator((data: LoginInput) => data)
-  .handler(async ({ data }): Promise<LoginResult> => {
-    const row = await env.DB.prepare(
-      "SELECT phone, first_name, last_name, email, income_source, app_pin_hash FROM users WHERE phone = ?",
-    )
-      .bind(data.phone)
-      .first<{ phone: string; first_name: string; last_name: string; email: string | null; income_source: string | null; app_pin_hash: string }>();
-    if (!row) return { ok: false, error: "No account found with that mobile number." };
+type StoredUser = LoginUser & { pinHash: string; createdAt: number };
 
-    const valid = await verifyPin(data.pin, row.app_pin_hash);
-    if (!valid) return { ok: false, error: "Incorrect PIN." };
+// Accounts live in this browser only. No server or database is involved.
+const KEY = "alula-pay-accounts-v1";
 
-    return {
-      ok: true,
-      user: {
-        phone: row.phone,
-        firstName: row.first_name,
-        lastName: row.last_name,
-        email: row.email ?? "",
-        incomeSource: row.income_source ?? "",
-      },
-    };
+function readAll(): StoredUser[] {
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeAll(users: StoredUser[]): boolean {
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(users));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function signupUser({ data }: { data: SignupInput }): Promise<SignupResult> {
+  const pinHash = await hashPin(data.pin);
+  // Signing up again with the same number replaces the old account on this
+  // device, so repeated demo signups never lock you out.
+  const others = readAll().filter((u) => u.phone !== data.phone);
+  others.push({
+    phone: data.phone,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: data.email || "",
+    incomeSource: data.incomeSource || "",
+    pinHash,
+    createdAt: Date.now(),
   });
+  if (!writeAll(others)) {
+    return { ok: false, error: "Couldn't save your account on this device. Check your browser storage settings." };
+  }
+  return { ok: true };
+}
+
+export async function loginUser({ data }: { data: LoginInput }): Promise<LoginResult> {
+  const row = readAll().find((u) => u.phone === data.phone);
+  if (!row) return { ok: false, error: "No account found with that mobile number." };
+
+  const valid = await verifyPin(data.pin, row.pinHash);
+  if (!valid) return { ok: false, error: "Incorrect PIN." };
+
+  return {
+    ok: true,
+    user: {
+      phone: row.phone,
+      firstName: row.firstName,
+      lastName: row.lastName,
+      email: row.email,
+      incomeSource: row.incomeSource,
+    },
+  };
+                                            }
